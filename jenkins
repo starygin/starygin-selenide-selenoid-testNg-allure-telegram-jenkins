@@ -1,0 +1,48 @@
+node {
+  stage('clean')
+        { cleanWs()
+       }
+        stage('git')
+   {
+git branch: 'main', credentialsId: 'credentialsId', url: 'https://github.com/starygin/starygin-selenide-selenoid-testNg-allure-telegram-jenkins'
+}
+   try {
+            stage('test')
+           {
+
+            script
+				{
+                sh 'chmod +x mvnw'
+                sh './mvnw test -Dsuites=all'
+
+            }}}
+            catch(e) {
+        build_ok = false
+        echo e.toString()
+    }
+
+     stage('reports') {
+
+               script {
+            allure([
+                    includeProperties: false,
+                    jdk: '',
+                    properties: [],
+                    reportBuildPolicy: 'ALWAYS',
+                    results: [[path: 'target/allure-results']]
+						])
+					}
+
+			}
+
+     	    stage('TELEGRAM')
+            {
+             script
+				{
+            sh 'chmod +x allure-piechart-telegram-2.0.5.jar'
+            sh	 'java -jar ./allure-piechart-telegram-2.0.5.jar -ch true -s "token_bot" -c "id_chat" -p "PROD" -f allure-report/ -b jenkins -n "all" -e ${JOB_BASE_NAME} -l ru'
+    }
+ }
+		}
+
+
